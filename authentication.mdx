@@ -1,27 +1,31 @@
 ---
 title: Authentication
-description: Public and authenticated endpoints
+description: Public endpoints, bearer tokens, and the current auth boundary
 ---
 
-Most AssetArcade API endpoints are public and read-only.
+Most AssetArcade API endpoints are public and read-only. Today, authentication is only required for user-specific entitlement checks.
 
 ## Public endpoints
 
 These endpoints do not require authentication:
 
-- search
-- asset detail
-- manifest
-- context
-- integration
-- capabilities
-- branches
-- versions
-- publisher profile
+- Search
+- Asset detail
+- Manifest
+- Context
+- Integration
+- Capabilities
+- Branches
+- Versions
+- Publisher profile
 
 ## Authenticated endpoint
 
-`GET /v1/assets/{assetId}/entitlement` requires a Clerk bearer token.
+The current authenticated endpoint is:
+
+`GET /v1/assets/{assetId}/entitlement`
+
+This endpoint checks whether the authenticated user owns a specific public asset.
 
 ## Bearer token format
 
@@ -29,3 +33,19 @@ Send the token in the `Authorization` header:
 
 ```http
 Authorization: Bearer <token>
+```
+
+## Auth model
+
+AssetArcade currently uses a simple split:
+
+- Public read-only endpoints for discovery and metadata
+- A user-bound bearer token for entitlement checks
+
+This keeps the discovery surface open while still protecting ownership lookups.
+
+## Notes
+
+- Entitlement checks currently use a Clerk bearer token
+- API keys are not required for the current public surface
+- Future API key support and rate-limiting tiers are planned separately from user-bound auth
