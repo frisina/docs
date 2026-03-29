@@ -3,7 +3,7 @@
   "info": {
     "title": "AssetArcade API",
     "version": "1.0.0",
-    "description": "Agent-native asset marketplace API. Provides capability-based asset discovery, structured manifests, compatibility metadata, and integration guidance for AI agents and developer tooling.",
+    "description": "Structured asset discovery and metadata API for modern game development workflows. Search by capability, inspect manifests and integration guidance, resolve branches and versions, and retrieve publisher and entitlement data for developer-led, AI-assisted tooling.",
     "x-deprecation-policy": {
       "versioningScheme": "path-prefix",
       "currentVersion": "v1",
@@ -1265,8 +1265,8 @@
         "tags": [
           "Search"
         ],
-        "summary": "Capability-based agent asset search",
-        "description": "Search for assets by capability requirements with scoring, engine constraints, and pricing filters. Returns lightweight results with deep-link URLs for focused metadata endpoints.",
+        "summary": "Search assets by capability",
+        "description": "Search for assets by capability, engine requirements, and pricing constraints. Designed for developers, tools, and AI-assisted workflows that need lightweight ranked results plus deep links into detail and focused metadata endpoints.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1316,8 +1316,8 @@
         "tags": [
           "Assets"
         ],
-        "summary": "Full asset detail",
-        "description": "Returns the full asset detail including storefront listing, pricing, branch-resolved technical metadata, manifest, context, integration notes, version history, and file listing.",
+        "summary": "Get asset detail",
+        "description": "Retrieve the complete public asset record, combining storefront listing fields with branch-resolved technical metadata, manifests, summaries, versions, and file information.",
         "parameters": [
           {
             "schema": {
@@ -1380,8 +1380,8 @@
         "tags": [
           "Assets"
         ],
-        "summary": "Focused manifest endpoint",
-        "description": "Returns the validated GameMaker manifest and agent readiness level. Returns null manifest for invalid or legacy JSON.",
+        "summary": "Get asset manifest",
+        "description": "Retrieve the validated GameMaker manifest for a specific asset and branch. Useful for compatibility checks, dependency inspection, and install-aware tooling.",
         "parameters": [
           {
             "schema": {
@@ -1444,8 +1444,8 @@
         "tags": [
           "Assets"
         ],
-        "summary": "Focused context metadata",
-        "description": "Returns the raw context markdown and an AI-generated summary for the asset.",
+        "summary": "Get asset context",
+        "description": "Retrieve the raw context markdown and summary for a specific asset and branch. Useful for design intent, usage notes, and higher-level implementation context.",
         "parameters": [
           {
             "schema": {
@@ -1508,8 +1508,8 @@
         "tags": [
           "Assets"
         ],
-        "summary": "Focused integration metadata",
-        "description": "Returns the raw integration markdown and an AI-generated summary for the asset.",
+        "summary": "Get asset integration guide",
+        "description": "Retrieve the raw integration markdown and summary for a specific asset and branch. Useful for setup steps, integration guidance, and implementation workflows.",
         "parameters": [
           {
             "schema": {
@@ -1572,8 +1572,8 @@
         "tags": [
           "Capabilities"
         ],
-        "summary": "Capability taxonomy",
-        "description": "Returns all active capabilities grouped by category. Capabilities are stable slugs used for agent search filtering.",
+        "summary": "List capabilities",
+        "description": "List all active capability slugs grouped by category. These stable identifiers power capability-based search and client-side caching.",
         "responses": {
           "200": {
             "description": "Capabilities grouped by category",
@@ -1603,8 +1603,8 @@
         "tags": [
           "Assets"
         ],
-        "summary": "List public branches",
-        "description": "Returns active and deprecated branches that have a published content version. Only lists branches that the detail endpoint will accept via ?branch= parameter.",
+        "summary": "List asset branches",
+        "description": "List active and deprecated branches that have a published content version. This endpoint only returns branches the asset detail endpoint will accept via the branch query parameter.",
         "parameters": [
           {
             "schema": {
@@ -1657,8 +1657,8 @@
         "tags": [
           "Assets"
         ],
-        "summary": "Branch version history",
-        "description": "Returns the file version history for a branch, including file counts and sizes per version.",
+        "summary": "List branch versions",
+        "description": "List the version history for a public branch, including file counts and package or documentation availability by version.",
         "parameters": [
           {
             "schema": {
@@ -1722,8 +1722,8 @@
         "tags": [
           "Library"
         ],
-        "summary": "Check asset entitlement",
-        "description": "Check if the authenticated user owns this asset. Requires a Clerk JWT session token. Returns 404 for missing/unpublished assets, 401 if not authenticated.",
+        "summary": "Check user entitlement",
+        "description": "Check whether the authenticated user owns a public asset. Intended for user-specific workflows such as gated installs, downloads, and project setup.",
         "security": [
           {
             "clerkAuth": []
@@ -1791,8 +1791,8 @@
         "tags": [
           "Publishers"
         ],
-        "summary": "Public publisher profile",
-        "description": "Returns the public profile of a publisher by slug. The verified field indicates verification status, matching the pattern used in asset detail responses.",
+        "summary": "Get publisher profile",
+        "description": "Retrieve the public profile of a publisher by slug. Direct lookup can return unverified publishers and exposes the same verified flag pattern used in asset detail responses.",
         "parameters": [
           {
             "schema": {
