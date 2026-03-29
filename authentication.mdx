@@ -1,0 +1,33 @@
+  ---
+title: Authentication
+description: Public and authenticated endpoints
+---
+
+# Authentication
+
+Most AssetArcade API endpoints are public and read-only.
+
+## Public endpoints
+
+These endpoints do not require authentication:
+
+- Search
+- Asset detail
+- Manifest
+- Context
+- Integration
+- Capabilities
+- Branches
+- Versions
+- Publisher profile
+
+## Authenticated endpoints
+
+`GET /v1/assets/{assetId}/entitlement` requires a Clerk bearer token.
+
+## Bearer token format
+
+Send the token in the `Authorization` header:
+
+```http
+Authorization: Bearer <token>
