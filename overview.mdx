@@ -1,28 +1,51 @@
 ---
 title: Overview
-description: AssetArcade API overview
+description: AssetArcade API for asset discovery, structured metadata, and agent-friendly integration
 ---
 
-# AssetArcade API
+AssetArcade is an agent-native asset marketplace API for discovering assets, inspecting structured metadata, and retrieving implementation guidance.
 
-AssetArcade is an agent-native asset marketplace API for discovery, manifests, compatibility metadata, integration guidance, branches, entitlements, and publisher profiles.
+## What the API is for
 
-## Base URL
+The API is designed for both human developers and AI agents.
 
-`/api`
+You can use it to:
 
-## Current version
+- search for assets by capability
+- inspect manifests, context, and integration guidance
+- explore branches and version history
+- check user entitlement for a specific asset
+- look up publisher profiles
 
-`/v1/`
+## Base path
 
-## Format
+All endpoints are served under:
 
-All responses are JSON unless otherwise noted.
+`/api/v1`
 
-## What you can do
+## Response style
 
-- Search for assets by capability
-- Inspect asset manifests, context, and integration metadata
-- Discover capabilities and branch/version information
-- Check ownership for authenticated users
-- Look up publisher profiles
+The API is read-focused and resource-oriented:
+
+- search responses are lightweight
+- detail endpoints are deeper and more structured
+- manifest, context, and integration each have focused endpoints
+- versioning is path-based
+
+## Current surface
+
+The current API includes:
+
+- agent search
+- asset detail
+- manifest, context, and integration endpoints
+- capabilities taxonomy
+- branch listing and version history
+- entitlement checks
+- publisher profiles
+
+## OpenAPI and SDKs
+
+The API contract is defined in OpenAPI and used to power generated reference docs and SDK types.
+
+See the Reference section for endpoint details.
