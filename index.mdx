@@ -1,97 +1,69 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: AssetArcade API
+description: Agent-native asset discovery, structured metadata, and integration guidance
 ---
 
-## Setting up
-
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
+AssetArcade provides an API for discovering assets, inspecting structured metadata, and integrating machine-readable marketplace data into tools, workflows, and agents.
 
 <Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Start with the core API flow: search for an asset, inspect its metadata, and integrate from the structured endpoints.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+
+  <Card title="Authentication" icon="shield" href="/authentication">
+    Most endpoints are public. Entitlement checks use a Clerk bearer token.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+
+  <Card title="Reference" icon="book-open">
+    Explore the full generated API reference in the Reference section of the sidebar, grouped by Search, Assets, Capabilities, Library, and Publishers.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+
+  <Card title="Deprecation Policy" icon="clock-3" href="/deprecation-policy">
+    Review versioning, compatibility guarantees, and the deprecation process for future API versions.
   </Card>
 </Columns>
 
-## Create beautiful pages
+## What the API is for
 
-Everything you need to create world-class documentation.
+The API is designed for both human developers and AI agents.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+You can use it to:
 
-## Need inspiration?
+- search for assets by capability
+- inspect manifests, context, and integration guidance
+- explore branches and version history
+- check user entitlement for a specific asset
+- look up publisher profiles
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+## Base path
+
+All endpoints are served under:
+
+`/api/v1`
+
+## Current surface
+
+The current API includes:
+
+- agent search
+- asset detail
+- manifest, context, and integration endpoints
+- capabilities taxonomy
+- branch listing and version history
+- entitlement checks
+- publisher profiles
+
+## Response style
+
+The API is read-focused and resource-oriented:
+
+- search responses are lightweight
+- detail endpoints are deeper and more structured
+- manifest, context, and integration each have focused endpoints
+- versioning is path-based
+
+## Versioning
+
+AssetArcade currently serves `/v1/`.
+
+Breaking changes are introduced through a new major version rather than changing the live version in place.
