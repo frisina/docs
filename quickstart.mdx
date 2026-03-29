@@ -1,9 +1,9 @@
 ---
 title: Quickstart
-description: Search, inspect, and integrate assets in a few requests
+description: Move from asset discovery to implementation in a few requests
 ---
 
-This quickstart walks through the core AssetArcade flow for developers and AI agents:
+This quickstart walks through the core AssetArcade flow for modern development workflows:
 
 1. search for an asset by capability
 2. inspect a candidate asset directly
@@ -17,7 +17,7 @@ This quickstart walks through the core AssetArcade flow for developers and AI ag
 
 ## 1. Search for assets
 
-Use the search endpoint to find assets an agent or developer can reason about by capability, engine fit, and basic constraints.
+Use the search endpoint to find assets by capability, engine fit, and basic constraints.
 
 ```bash
 curl -X POST /api/v1/agent/search \
@@ -50,7 +50,7 @@ This response includes:
 
 ## 3. Fetch focused metadata
 
-If you only need one slice of the asset record, use the focused endpoints. These are especially useful for agents that want to make a narrow decision without pulling the full detail payload.
+If you only need one slice of the asset record, use the focused endpoints. These are especially useful for tools and AI-assisted workflows that want to make a narrow decision without pulling the full detail payload.
 
 ### Manifest
 
