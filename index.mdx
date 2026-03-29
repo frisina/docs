@@ -1,39 +1,37 @@
 ---
 title: AssetArcade API
-description: Agent-native asset discovery, structured metadata, and integration guidance
+description: Make game assets discoverable to AI agents with structured metadata and integration guidance
 ---
 
-AssetArcade provides an API for discovering assets, inspecting structured metadata, and integrating machine-readable marketplace data into tools, workflows, and agents.
+AssetArcade makes game assets discoverable, inspectable, and integration-ready for AI-assisted game development. Developers, AI agents, and tooling can search by capability, inspect structured metadata, and move from discovery to implementation without scraping storefront pages.
 
 <Columns cols={2}>
   <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Start with the core API flow: search for an asset, inspect its metadata, and integrate from the structured endpoints.
+    Search for assets, inspect a candidate, and fetch the focused metadata needed to make implementation decisions.
   </Card>
 
   <Card title="Authentication" icon="shield" href="/authentication">
-    Most endpoints are public. Entitlement checks use a Clerk bearer token.
+    Most endpoints are public. Entitlement checks use a Clerk bearer token for user-specific ownership lookups.
   </Card>
 
   <Card title="Reference" icon="book-open">
-    Explore the full generated API reference in the Reference section of the sidebar, grouped by Search, Assets, Capabilities, Library, and Publishers.
+    Browse the generated API surface for search, assets, capabilities, entitlements, and publisher lookup.
   </Card>
 
   <Card title="Deprecation Policy" icon="clock-3" href="/deprecation-policy">
-    Review versioning, compatibility guarantees, and the deprecation process for future API versions.
+    Review versioning, compatibility guarantees, and how future major versions are introduced.
   </Card>
 </Columns>
 
-## What the API is for
+## Why AssetArcade exists
 
-The API is designed for both human developers and AI agents.
+AI-assisted game development needs machine-readable assets, not just storefront copy. AssetArcade exposes manifests, context, integration guidance, branches, versions, and publisher data in a form that developers, tools, and AI agents can act on directly.
 
-You can use it to:
+## Who it's for
 
-- search for assets by capability
-- inspect manifests, context, and integration guidance
-- explore branches and version history
-- check user entitlement for a specific asset
-- look up publisher profiles
+- AI coding agents that need structured asset discovery and implementation context
+- tool builders integrating marketplace discovery into assistants, IDEs, and pipelines
+- developers and publishers who want assets to be understandable inside AI-assisted workflows
 
 ## Base path
 
@@ -53,17 +51,12 @@ The current API includes:
 - entitlement checks
 - publisher profiles
 
-## Response style
+## How to navigate
 
-The API is read-focused and resource-oriented:
-
-- search responses are lightweight
-- detail endpoints are deeper and more structured
-- manifest, context, and integration each have focused endpoints
-- versioning is path-based
+Start with [Quickstart](/quickstart) if you want the shortest path from search to implementation. Use the generated Reference section when you need the full request and response surface by tag.
 
 ## Versioning
 
 AssetArcade currently serves `/v1/`.
 
-Breaking changes are introduced through a new major version rather than changing the live version in place.
+Breaking changes are introduced through a new major version rather than changing the live version in place. See the [Deprecation Policy](/deprecation-policy) for the compatibility rules.
