@@ -1,440 +1,1845 @@
-// ---------------------------------------------------------------------------
-// OpenAPI V1 Spec Generator
-// ---------------------------------------------------------------------------
-//
-// Registers all V1 endpoints and their Zod schemas in an OpenAPI 3.1 registry,
-// then exports a function to generate the full document.
-//
-// Server base: /api  (path items use /v1/... so resolved URLs = /api/v1/...)
-// ---------------------------------------------------------------------------
-
-import { z } from 'zod';
-import {
-  OpenAPIRegistry,
-  OpenApiGeneratorV31,
-} from '@asteasolutions/zod-to-openapi';
-
-import { ErrorResponseSchema } from './schemas/common';
-import { SearchQueryInputSchema, SearchResponseSchema } from './schemas/search';
-import {
-  AssetDetailSchema,
-  AssetManifestResponseSchema,
-  AssetMarkdownMetadataResponseSchema,
-} from './schemas/asset';
-import { CapabilitiesResponseSchema } from './schemas/capabilities';
-import { PublisherProfileSchema } from './schemas/publishers';
-import {
-  BranchListResponseSchema,
-  VersionListResponseSchema,
-  EntitlementResponseSchema,
-} from './schemas/branches';
-
-// ---- Registry -------------------------------------------------------------
-
-const registry = new OpenAPIRegistry();
-
-// ---- Reusable param schemas -----------------------------------------------
-
-const AssetIdParamSchema = z.object({
-  assetId: z.string().openapi({ description: 'Asset ID', example: 'abc123' }),
-});
-
-const PublisherSlugParamSchema = z.object({
-  slug: z.string().openapi({ description: 'Publisher slug', example: 'acme-games' }),
-});
-
-const BranchIdParamSchema = z.object({
-  assetId: z.string().openapi({ description: 'Asset ID', example: 'abc123' }),
-  branchId: z.string().openapi({ description: 'Branch ID', example: 'br_xyz' }),
-});
-
-const BranchQuerySchema = z.object({
-  branch: z
-    .string()
-    .optional()
-    .openapi({
-      description: "Branch ID to scope metadata. Defaults to the asset's default branch.",
-    }),
-});
-
-// ---- Error helper ---------------------------------------------------------
-
-function errorContent() {
-  return {
-    'application/json': {
-      schema: ErrorResponseSchema,
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AssetArcade API",
+    "version": "1.0.0",
+    "description": "Agent-native asset marketplace API. Provides capability-based asset discovery, structured manifests, compatibility metadata, and integration guidance for AI agents and developer tooling.",
+    "x-deprecation-policy": {
+      "versioningScheme": "path-prefix",
+      "currentVersion": "v1",
+      "status": "active",
+      "sunsetDate": null,
+      "minimumDeprecationPeriod": "6 months",
+      "deprecationSignals": [
+        "Deprecation header",
+        "Sunset header",
+        "deprecated: true in spec"
+      ],
+      "policyUrl": "https://assetarcade.mintlify.app/deprecation-policy"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "Relative base path (resolves to /api/v1/... in production)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Search",
+      "description": "Agent-driven asset discovery"
     },
-  };
-}
-
-// ---- Endpoints ------------------------------------------------------------
-
-// POST /v1/agent/search
-registry.registerPath({
-  method: 'post',
-  path: '/v1/agent/search',
-  tags: ['Search'],
-  summary: 'Capability-based agent asset search',
-  description:
-    'Search for assets by capability requirements with scoring, engine constraints, and pricing filters. Returns lightweight results with deep-link URLs for focused metadata endpoints.',
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: SearchQueryInputSchema,
+    {
+      "name": "Assets",
+      "description": "Asset detail and sub-resources"
+    },
+    {
+      "name": "Capabilities",
+      "description": "Capability taxonomy for asset classification"
+    },
+    {
+      "name": "Library",
+      "description": "User library and entitlements"
+    },
+    {
+      "name": "Publishers",
+      "description": "Publisher profiles"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "clerkAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Clerk JWT session token"
+      }
+    },
+    "schemas": {
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "$ref": "#/components/schemas/SearchQueryEcho"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSearchResult"
+            }
+          }
         },
+        "required": [
+          "query",
+          "results"
+        ]
       },
-      required: true,
-    },
-  },
-  responses: {
-    200: {
-      description: 'Search results sorted by fit score',
-      content: {
-        'application/json': {
-          schema: SearchResponseSchema,
+      "SearchQueryEcho": {
+        "type": "object",
+        "properties": {
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "engine": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "engineVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "constraints": {
+            "type": "object",
+            "properties": {
+              "maxPriceCents": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "licenseType": {
+                "type": "string",
+                "enum": [
+                  "personal",
+                  "professional"
+                ]
+              },
+              "minReadinessLevel": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "maxPriceCents",
+              "licenseType",
+              "minReadinessLevel"
+            ]
+          },
+          "limit": {
+            "type": "number"
+          }
         },
+        "required": [
+          "capabilities",
+          "engine",
+          "engineVersion",
+          "constraints",
+          "limit"
+        ]
       },
-    },
-    400: {
-      description: 'Validation error',
-      content: errorContent(),
-    },
-    500: {
-      description: 'Internal server error',
-      content: errorContent(),
-    },
-  },
-});
-
-// GET /v1/assets/{assetId}
-registry.registerPath({
-  method: 'get',
-  path: '/v1/assets/{assetId}',
-  tags: ['Assets'],
-  summary: 'Full asset detail',
-  description:
-    'Returns the full asset detail including storefront listing, pricing, branch-resolved technical metadata, manifest, context, integration notes, version history, and file listing.',
-  request: {
-    params: AssetIdParamSchema,
-    query: BranchQuerySchema,
-  },
-  responses: {
-    200: {
-      description: 'Asset detail',
-      content: {
-        'application/json': {
-          schema: AssetDetailSchema,
+      "AgentSearchResult": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "shortDescription": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fitScore": {
+            "type": "number"
+          },
+          "pricing": {
+            "type": "object",
+            "properties": {
+              "effectivePriceCents": {
+                "type": "number"
+              },
+              "licenseType": {
+                "type": "string",
+                "enum": [
+                  "personal",
+                  "professional"
+                ]
+              }
+            },
+            "required": [
+              "effectivePriceCents",
+              "licenseType"
+            ]
+          },
+          "bestBranch": {
+            "$ref": "#/components/schemas/SearchBranchSummary"
+          },
+          "explanation": {
+            "$ref": "#/components/schemas/SearchExplanation"
+          },
+          "assetApiUrl": {
+            "type": "string"
+          },
+          "detailUrls": {
+            "$ref": "#/components/schemas/DetailUrls"
+          }
         },
+        "required": [
+          "assetId",
+          "slug",
+          "title",
+          "shortDescription",
+          "fitScore",
+          "pricing",
+          "bestBranch",
+          "explanation",
+          "assetApiUrl",
+          "detailUrls"
+        ]
       },
-    },
-    404: {
-      description: 'Asset not found or branch invalid',
-      content: errorContent(),
-    },
-    500: {
-      description: 'Internal server error',
-      content: errorContent(),
-    },
-  },
-});
-
-// GET /v1/assets/{assetId}/manifest
-registry.registerPath({
-  method: 'get',
-  path: '/v1/assets/{assetId}/manifest',
-  tags: ['Assets'],
-  summary: 'Focused manifest endpoint',
-  description:
-    'Returns the validated GameMaker manifest and agent readiness level. Returns null manifest for invalid or legacy JSON.',
-  request: {
-    params: AssetIdParamSchema,
-    query: BranchQuerySchema,
-  },
-  responses: {
-    200: {
-      description: 'Manifest response',
-      content: {
-        'application/json': {
-          schema: AssetManifestResponseSchema,
+      "SearchBranchSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "releaseVersion": {
+            "type": "string"
+          },
+          "engine": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "engineVersionMin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "engineVersionMax": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "agentReadinessLevel": {
+            "type": "number"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hasManifest": {
+            "type": "boolean"
+          },
+          "hasContext": {
+            "type": "boolean"
+          },
+          "hasIntegration": {
+            "type": "boolean"
+          }
         },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "isDefault",
+          "releaseVersion",
+          "engine",
+          "engineVersionMin",
+          "engineVersionMax",
+          "agentReadinessLevel",
+          "capabilities",
+          "hasManifest",
+          "hasContext",
+          "hasIntegration"
+        ]
       },
-    },
-    404: {
-      description: 'Asset not found',
-      content: errorContent(),
-    },
-    500: {
-      description: 'Internal server error',
-      content: errorContent(),
-    },
-  },
-});
-
-// GET /v1/assets/{assetId}/context
-registry.registerPath({
-  method: 'get',
-  path: '/v1/assets/{assetId}/context',
-  tags: ['Assets'],
-  summary: 'Focused context metadata',
-  description:
-    'Returns the raw context markdown and an AI-generated summary for the asset.',
-  request: {
-    params: AssetIdParamSchema,
-    query: BranchQuerySchema,
-  },
-  responses: {
-    200: {
-      description: 'Context metadata',
-      content: {
-        'application/json': {
-          schema: AssetMarkdownMetadataResponseSchema,
+      "SearchExplanation": {
+        "type": "object",
+        "properties": {
+          "matchedCapabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missingCapabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "engineCompatibility": {
+            "type": "string",
+            "enum": [
+              "compatible",
+              "unknown",
+              "incompatible"
+            ]
+          },
+          "readinessLevel": {
+            "type": "number"
+          },
+          "priceEligible": {
+            "type": "boolean"
+          }
         },
+        "required": [
+          "matchedCapabilities",
+          "missingCapabilities",
+          "engineCompatibility",
+          "readinessLevel",
+          "priceEligible"
+        ]
       },
-    },
-    404: {
-      description: 'Asset not found',
-      content: errorContent(),
-    },
-    500: {
-      description: 'Internal server error',
-      content: errorContent(),
-    },
-  },
-});
-
-// GET /v1/assets/{assetId}/integration
-registry.registerPath({
-  method: 'get',
-  path: '/v1/assets/{assetId}/integration',
-  tags: ['Assets'],
-  summary: 'Focused integration metadata',
-  description:
-    'Returns the raw integration markdown and an AI-generated summary for the asset.',
-  request: {
-    params: AssetIdParamSchema,
-    query: BranchQuerySchema,
-  },
-  responses: {
-    200: {
-      description: 'Integration metadata',
-      content: {
-        'application/json': {
-          schema: AssetMarkdownMetadataResponseSchema,
+      "DetailUrls": {
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": "string"
+          },
+          "manifest": {
+            "type": "string"
+          },
+          "context": {
+            "type": "string"
+          },
+          "integration": {
+            "type": "string"
+          }
         },
+        "required": [
+          "asset",
+          "manifest",
+          "context",
+          "integration"
+        ]
       },
-    },
-    404: {
-      description: 'Asset not found',
-      content: errorContent(),
-    },
-    500: {
-      description: 'Internal server error',
-      content: errorContent(),
-    },
-  },
-});
-
-// ---- Phase 2 endpoints ----------------------------------------------------
-
-// GET /v1/capabilities
-registry.registerPath({
-  method: 'get',
-  path: '/v1/capabilities',
-  tags: ['Capabilities'],
-  summary: 'Capability taxonomy',
-  description:
-    'Returns all active capabilities grouped by category. Capabilities are stable slugs used for agent search filtering.',
-  responses: {
-    200: {
-      description: 'Capabilities grouped by category',
-      content: {
-        'application/json': {
-          schema: CapabilitiesResponseSchema,
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human-readable error (backward compat)"
+          },
+          "errorDetail": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
         },
+        "required": [
+          "error"
+        ]
       },
-    },
-    500: {
-      description: 'Internal server error',
-      content: errorContent(),
-    },
-  },
-});
-
-// GET /v1/assets/{assetId}/branches
-registry.registerPath({
-  method: 'get',
-  path: '/v1/assets/{assetId}/branches',
-  tags: ['Assets'],
-  summary: 'List public branches',
-  description:
-    'Returns active and deprecated branches that have a published content version. Only lists branches that the detail endpoint will accept via ?branch= parameter.',
-  request: {
-    params: AssetIdParamSchema,
-  },
-  responses: {
-    200: {
-      description: 'Branch listing',
-      content: {
-        'application/json': {
-          schema: BranchListResponseSchema,
+      "ErrorDetail": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "VALIDATION_ERROR",
+              "NOT_FOUND",
+              "UNAUTHORIZED",
+              "RATE_LIMITED",
+              "INTERNAL_ERROR"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
         },
+        "required": [
+          "code",
+          "message"
+        ],
+        "description": "Structured error with machine-parseable code. Prefer this over error."
       },
-    },
-    404: {
-      description: 'Asset not found',
-      content: errorContent(),
-    },
-    500: {
-      description: 'Internal server error',
-      content: errorContent(),
-    },
-  },
-});
-
-// GET /v1/assets/{assetId}/branches/{branchId}/versions
-registry.registerPath({
-  method: 'get',
-  path: '/v1/assets/{assetId}/branches/{branchId}/versions',
-  tags: ['Assets'],
-  summary: 'Branch version history',
-  description:
-    'Returns the file version history for a branch, including file counts and sizes per version.',
-  request: {
-    params: BranchIdParamSchema,
-  },
-  responses: {
-    200: {
-      description: 'Version history',
-      content: {
-        'application/json': {
-          schema: VersionListResponseSchema,
+      "SearchQuery": {
+        "type": "object",
+        "properties": {
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Non-empty array of capability slugs. Whitespace-only entries are stripped; request fails if no non-empty entries remain."
+          },
+          "engine": {
+            "type": "string",
+            "description": "Engine filter (e.g., \"GameMaker\")."
+          },
+          "engineVersion": {
+            "type": "string",
+            "description": "Engine version constraint (e.g., \"2024.8\"). Requires engine to be set. Must be a parseable dotted numeric version."
+          },
+          "constraints": {
+            "type": "object",
+            "properties": {
+              "maxPriceCents": {
+                "type": "number",
+                "minimum": 0
+              },
+              "licenseType": {
+                "type": "string",
+                "enum": [
+                  "personal",
+                  "professional"
+                ]
+              },
+              "minReadinessLevel": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 3
+              }
+            }
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max results. Defaults to 10. Clamped to 1-25 range (floored if fractional)."
+          }
         },
+        "required": [
+          "capabilities"
+        ]
       },
-    },
-    404: {
-      description: 'Asset or branch not found',
-      content: errorContent(),
-    },
-    500: {
-      description: 'Internal server error',
-      content: errorContent(),
-    },
-  },
-});
-
-// Security scheme for authenticated endpoints
-registry.registerComponent('securitySchemes', 'clerkAuth', {
-  type: 'http',
-  scheme: 'bearer',
-  description: 'Clerk JWT session token',
-});
-
-// GET /v1/assets/{assetId}/entitlement
-registry.registerPath({
-  method: 'get',
-  path: '/v1/assets/{assetId}/entitlement',
-  tags: ['Library'],
-  summary: 'Check asset entitlement',
-  description:
-    'Check if the authenticated user owns this asset. Requires a Clerk JWT session token. Returns 404 for missing/unpublished assets, 401 if not authenticated.',
-  security: [{ clerkAuth: [] }],
-  request: {
-    params: AssetIdParamSchema,
-  },
-  responses: {
-    200: {
-      description: 'Entitlement status',
-      content: {
-        'application/json': {
-          schema: EntitlementResponseSchema,
+      "AssetDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "shortDescription": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fullDescription": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "category": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subcategoryName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "assetType": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "pricing": {
+            "$ref": "#/components/schemas/Pricing"
+          },
+          "engine": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "engineVersionMin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "engineVersionMax": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "testedPlatforms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "agentReadinessLevel": {
+            "type": "number"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/GameMakerManifest"
+          },
+          "context": {
+            "type": "object",
+            "properties": {
+              "raw": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "summary": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "raw",
+              "summary"
+            ]
+          },
+          "integration": {
+            "type": "object",
+            "properties": {
+              "raw": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "summary": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "raw",
+              "summary"
+            ]
+          },
+          "downloadCount": {
+            "type": "number"
+          },
+          "rating": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "reviewCount": {
+            "type": "number"
+          },
+          "publishedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publisher": {
+            "$ref": "#/components/schemas/PublisherSummary"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "fileCount": {
+                  "type": "number"
+                },
+                "totalSizeBytes": {
+                  "type": "number"
+                },
+                "hasPackage": {
+                  "type": "boolean"
+                },
+                "hasDocs": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "version",
+                "createdAt",
+                "fileCount",
+                "totalSizeBytes",
+                "hasPackage",
+                "hasDocs"
+              ]
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "sizeBytes": {
+                  "type": "number"
+                },
+                "sizeLabel": {
+                  "type": "string"
+                },
+                "changelog": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "role",
+                "version",
+                "sizeBytes",
+                "sizeLabel",
+                "changelog",
+                "createdAt"
+              ]
+            }
+          },
+          "detailUrls": {
+            "$ref": "#/components/schemas/DetailUrls"
+          }
         },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "shortDescription",
+          "fullDescription",
+          "category",
+          "subcategoryName",
+          "assetType",
+          "tags",
+          "pricing",
+          "engine",
+          "engineVersionMin",
+          "engineVersionMax",
+          "testedPlatforms",
+          "capabilities",
+          "agentReadinessLevel",
+          "manifest",
+          "context",
+          "integration",
+          "downloadCount",
+          "rating",
+          "reviewCount",
+          "publishedAt",
+          "updatedAt",
+          "publisher",
+          "versions",
+          "files",
+          "detailUrls"
+        ]
       },
-    },
-    401: {
-      description: 'Authentication required',
-      content: errorContent(),
-    },
-    404: {
-      description: 'Asset not found',
-      content: errorContent(),
-    },
-    500: {
-      description: 'Internal server error',
-      content: errorContent(),
-    },
-  },
-});
-
-// GET /v1/publishers/{slug}
-registry.registerPath({
-  method: 'get',
-  path: '/v1/publishers/{slug}',
-  tags: ['Publishers'],
-  summary: 'Public publisher profile',
-  description:
-    'Returns the public profile of a publisher by slug. The verified field indicates verification status, matching the pattern used in asset detail responses.',
-  request: {
-    params: PublisherSlugParamSchema,
-  },
-  responses: {
-    200: {
-      description: 'Publisher profile',
-      content: {
-        'application/json': {
-          schema: PublisherProfileSchema,
+      "Pricing": {
+        "type": "object",
+        "properties": {
+          "priceCents": {
+            "type": "number"
+          },
+          "salePriceCents": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "saleEndsAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "commercialPriceCents": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "license": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "isFree": {
+            "type": "boolean"
+          }
         },
+        "required": [
+          "priceCents",
+          "salePriceCents",
+          "saleEndsAt",
+          "commercialPriceCents",
+          "license",
+          "isFree"
+        ]
       },
+      "GameMakerManifest": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "schema_version": {
+            "type": "string"
+          },
+          "package": {
+            "type": "object",
+            "properties": {
+              "package_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "extension",
+                  "script",
+                  "shader",
+                  "sprite_pack",
+                  "template",
+                  "tool",
+                  "audio_pack",
+                  "other"
+                ]
+              },
+              "version": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "package_id",
+              "name",
+              "kind",
+              "version"
+            ]
+          },
+          "compatibility": {
+            "type": "object",
+            "properties": {
+              "gamemaker_versions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "platforms": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "runtime": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "gamemaker_versions",
+              "platforms"
+            ]
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "package_id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "version_range": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "package_id"
+              ]
+            }
+          },
+          "install": {
+            "type": "object",
+            "properties": {
+              "method": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          },
+          "exports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "function",
+                    "script",
+                    "object",
+                    "shader",
+                    "sprite",
+                    "room",
+                    "extension"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "name"
+              ]
+            }
+          },
+          "notes": {
+            "type": "object",
+            "properties": {
+              "breaking_changes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "known_limitations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "schema_version",
+          "package",
+          "compatibility"
+        ]
+      },
+      "PublisherSummary": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "verified"
+        ]
+      },
+      "AssetManifestResponse": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/GameMakerManifest"
+          },
+          "agentReadinessLevel": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "assetId",
+          "slug",
+          "updatedAt",
+          "manifest",
+          "agentReadinessLevel"
+        ]
+      },
+      "AssetMarkdownMetadataResponse": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "raw": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "assetId",
+          "slug",
+          "updatedAt",
+          "raw",
+          "summary"
+        ]
+      },
+      "CapabilitiesResponse": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CapabilityCategory"
+            }
+          }
+        },
+        "required": [
+          "categories"
+        ]
+      },
+      "CapabilityCategory": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CapabilitySummary"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "capabilities"
+        ]
+      },
+      "CapabilitySummary": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "description"
+        ]
+      },
+      "BranchListResponse": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string"
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BranchSummary"
+            }
+          }
+        },
+        "required": [
+          "assetId",
+          "branches"
+        ]
+      },
+      "BranchSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "deprecated"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "isDefault",
+          "status",
+          "description"
+        ]
+      },
+      "VersionListResponse": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string"
+          },
+          "branchId": {
+            "type": "string"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "fileCount": {
+                  "type": "number"
+                },
+                "totalSizeBytes": {
+                  "type": "number"
+                },
+                "hasPackage": {
+                  "type": "boolean"
+                },
+                "hasDocs": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "version",
+                "createdAt",
+                "fileCount",
+                "totalSizeBytes",
+                "hasPackage",
+                "hasDocs"
+              ]
+            }
+          }
+        },
+        "required": [
+          "assetId",
+          "branchId",
+          "versions"
+        ]
+      },
+      "EntitlementResponse": {
+        "type": "object",
+        "properties": {
+          "owned": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string"
+          },
+          "purchasedAt": {
+            "type": "string"
+          },
+          "accessStatus": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "owned"
+        ]
+      },
+      "PublisherProfile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "logoUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bannerUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "websiteUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "socialLinks": {
+            "$ref": "#/components/schemas/SocialLinks"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "rating": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "ratingCount": {
+            "type": "number"
+          },
+          "assetCount": {
+            "type": "number"
+          },
+          "totalDownloads": {
+            "type": "number"
+          },
+          "memberSince": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "description",
+          "logoUrl",
+          "bannerUrl",
+          "websiteUrl",
+          "socialLinks",
+          "verified",
+          "rating",
+          "ratingCount",
+          "assetCount",
+          "totalDownloads",
+          "memberSince",
+          "countryCode"
+        ]
+      },
+      "SocialLinks": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "additionalProperties": {
+          "type": "string"
+        }
+      }
     },
-    404: {
-      description: 'Publisher not found',
-      content: errorContent(),
-    },
-    500: {
-      description: 'Internal server error',
-      content: errorContent(),
-    },
+    "parameters": {}
   },
-});
-
-// ---- Document generator ---------------------------------------------------
-
-export function generateOpenApiDocument() {
-  const generator = new OpenApiGeneratorV31(registry.definitions);
-
-  const doc = generator.generateDocument({
-    openapi: '3.1.0',
-    info: {
-      title: 'AssetArcade API',
-      version: '1.0.0',
-      description:
-        'Agent-native asset marketplace API. Provides capability-based asset discovery, structured manifests, compatibility metadata, and integration guidance for AI agents and developer tooling.',
+  "paths": {
+    "/v1/agent/search": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Capability-based agent asset search",
+        "description": "Search for assets by capability requirements with scoring, engine constraints, and pricing filters. Returns lightweight results with deep-link URLs for focused metadata endpoints.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results sorted by fit score",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     },
-    servers: [
-      {
-        url: '/api',
-        description: 'Relative base path (resolves to /api/v1/... in production)',
-      },
-    ],
-    tags: [
-      { name: 'Search', description: 'Agent-driven asset discovery' },
-      { name: 'Assets', description: 'Asset detail and sub-resources' },
-      { name: 'Capabilities', description: 'Capability taxonomy for asset classification' },
-      { name: 'Library', description: 'User library and entitlements' },
-      { name: 'Publishers', description: 'Publisher profiles' },
-    ],
-  });
-
-  // Add deprecation policy extension (not supported by zod-to-openapi directly)
-  (doc.info as unknown as Record<string, unknown>)['x-deprecation-policy'] = {
-    versioningScheme: 'path-prefix',
-    currentVersion: 'v1',
-    status: 'active',
-    sunsetDate: null,
-    minimumDeprecationPeriod: '6 months',
-    deprecationSignals: ['Deprecation header', 'Sunset header', 'deprecated: true in spec'],
-    policyUrl: 'https://assetarcade.mintlify.app/deprecation-policy',
-  };
-
-  return doc;
+    "/v1/assets/{assetId}": {
+      "get": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "Full asset detail",
+        "description": "Returns the full asset detail including storefront listing, pricing, branch-resolved technical metadata, manifest, context, integration notes, version history, and file listing.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Asset ID",
+              "example": "abc123"
+            },
+            "required": true,
+            "description": "Asset ID",
+            "name": "assetId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Branch ID to scope metadata. Defaults to the asset's default branch."
+            },
+            "required": false,
+            "description": "Branch ID to scope metadata. Defaults to the asset's default branch.",
+            "name": "branch",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset not found or branch invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/assets/{assetId}/manifest": {
+      "get": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "Focused manifest endpoint",
+        "description": "Returns the validated GameMaker manifest and agent readiness level. Returns null manifest for invalid or legacy JSON.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Asset ID",
+              "example": "abc123"
+            },
+            "required": true,
+            "description": "Asset ID",
+            "name": "assetId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Branch ID to scope metadata. Defaults to the asset's default branch."
+            },
+            "required": false,
+            "description": "Branch ID to scope metadata. Defaults to the asset's default branch.",
+            "name": "branch",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Manifest response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetManifestResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/assets/{assetId}/context": {
+      "get": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "Focused context metadata",
+        "description": "Returns the raw context markdown and an AI-generated summary for the asset.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Asset ID",
+              "example": "abc123"
+            },
+            "required": true,
+            "description": "Asset ID",
+            "name": "assetId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Branch ID to scope metadata. Defaults to the asset's default branch."
+            },
+            "required": false,
+            "description": "Branch ID to scope metadata. Defaults to the asset's default branch.",
+            "name": "branch",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Context metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetMarkdownMetadataResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/assets/{assetId}/integration": {
+      "get": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "Focused integration metadata",
+        "description": "Returns the raw integration markdown and an AI-generated summary for the asset.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Asset ID",
+              "example": "abc123"
+            },
+            "required": true,
+            "description": "Asset ID",
+            "name": "assetId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Branch ID to scope metadata. Defaults to the asset's default branch."
+            },
+            "required": false,
+            "description": "Branch ID to scope metadata. Defaults to the asset's default branch.",
+            "name": "branch",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integration metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetMarkdownMetadataResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/capabilities": {
+      "get": {
+        "tags": [
+          "Capabilities"
+        ],
+        "summary": "Capability taxonomy",
+        "description": "Returns all active capabilities grouped by category. Capabilities are stable slugs used for agent search filtering.",
+        "responses": {
+          "200": {
+            "description": "Capabilities grouped by category",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/assets/{assetId}/branches": {
+      "get": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "List public branches",
+        "description": "Returns active and deprecated branches that have a published content version. Only lists branches that the detail endpoint will accept via ?branch= parameter.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Asset ID",
+              "example": "abc123"
+            },
+            "required": true,
+            "description": "Asset ID",
+            "name": "assetId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Branch listing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/assets/{assetId}/branches/{branchId}/versions": {
+      "get": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "Branch version history",
+        "description": "Returns the file version history for a branch, including file counts and sizes per version.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Asset ID",
+              "example": "abc123"
+            },
+            "required": true,
+            "description": "Asset ID",
+            "name": "assetId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Branch ID",
+              "example": "br_xyz"
+            },
+            "required": true,
+            "description": "Branch ID",
+            "name": "branchId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset or branch not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/assets/{assetId}/entitlement": {
+      "get": {
+        "tags": [
+          "Library"
+        ],
+        "summary": "Check asset entitlement",
+        "description": "Check if the authenticated user owns this asset. Requires a Clerk JWT session token. Returns 404 for missing/unpublished assets, 401 if not authenticated.",
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Asset ID",
+              "example": "abc123"
+            },
+            "required": true,
+            "description": "Asset ID",
+            "name": "assetId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entitlement status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/publishers/{slug}": {
+      "get": {
+        "tags": [
+          "Publishers"
+        ],
+        "summary": "Public publisher profile",
+        "description": "Returns the public profile of a publisher by slug. The verified field indicates verification status, matching the pattern used in asset detail responses.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Publisher slug",
+              "example": "acme-games"
+            },
+            "required": true,
+            "description": "Publisher slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Publisher profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublisherProfile"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Publisher not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
 }
