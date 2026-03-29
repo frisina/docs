@@ -2,15 +2,39 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "AssetArcade",
+  "description": "Agent-native asset discovery, structured metadata, and integration guidance",
   "colors": {
-    "primary": "#f97316"
+    "primary": "#8B5CF6",
+    "light": "#A78BFA",
+    "dark": "#7C3AED"
+  },
+  "favicon": {
+    "light": "/favicon.svg",
+    "dark": "/favicon.svg"
+  },
+  "appearance": {
+    "default": "dark",
+    "strict": false
+  },
+  "background": {
+    "decoration": "gradient",
+    "color": {
+      "light": "#F8F7FA",
+      "dark": "#0B0E14"
+    }
+  },
+  "styling": {
+    "eyebrows": "section",
+    "codeblocks": "dark"
   },
   "navigation": {
     "groups": [
       {
         "group": "Overview",
         "pages": [
+          "index",
           "overview",
+          "quickstart",
           "authentication",
           "deprecation-policy"
         ]
