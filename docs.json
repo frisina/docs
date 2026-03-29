@@ -8,11 +8,6 @@
     "light": "#A78BFA",
     "dark": "#7C3AED"
   },
-  "logo": {
-  "light": "/images/assetarcade-logo-light.svg",
-  "dark": "/images/assetarcade-logo-dark.svg",
-  "href": "https://assetarcade.mintlify.app/"
-  },
   "favicon": {
     "light": "/favicon.svg",
     "dark": "/favicon.svg"
