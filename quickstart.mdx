@@ -1,13 +1,13 @@
 ---
 title: Quickstart
-description: Start using the AssetArcade API in a few requests
+description: Search, inspect, and integrate assets in a few requests
 ---
 
-This quickstart shows the core AssetArcade API flow:
+This quickstart walks through the core AssetArcade flow for developers and AI agents:
 
 1. search for an asset by capability
-2. inspect the asset detail
-3. fetch focused metadata like manifests or integration guidance
+2. inspect a candidate asset directly
+3. fetch the focused metadata needed for implementation decisions
 
 ## Base URL
 
@@ -17,7 +17,7 @@ This quickstart shows the core AssetArcade API flow:
 
 ## 1. Search for assets
 
-Use the search endpoint to find assets by capability.
+Use the search endpoint to find assets an agent or developer can reason about by capability, engine fit, and basic constraints.
 
 ```bash
 curl -X POST /api/v1/agent/search \
@@ -30,11 +30,11 @@ curl -X POST /api/v1/agent/search \
   }'
 ```
 
-The response returns lightweight matches with scores, branch summaries, and deep-link URLs for the next step.
+The response returns lightweight matches with fit scores, branch summaries, and deep-link URLs for the next step.
 
 ## 2. Inspect asset detail
 
-Use the asset detail endpoint to retrieve the full public record for an asset.
+Use the asset detail endpoint to retrieve the full public record for a specific asset. In practice, most clients reach this step from a search result's `detailUrls`.
 
 ```bash
 curl /api/v1/assets/asset_123
@@ -42,20 +42,19 @@ curl /api/v1/assets/asset_123
 
 This response includes:
 
-- storefront fields
-- pricing
-- capabilities
-- readiness level
-- manifest
-- context and integration summaries
+- storefront fields and pricing
+- structured capabilities and readiness signals
 - branch-aware technical metadata
+- manifest, context, and integration summaries
 - version and file information
 
 ## 3. Fetch focused metadata
 
-If you only need one part of the asset record, use the focused endpoints.
+If you only need one slice of the asset record, use the focused endpoints. These are especially useful for agents that want to make a narrow decision without pulling the full detail payload.
 
 ### Manifest
+
+Best for compatibility checks, dependency inspection, and install-aware tooling.
 
 ```bash
 curl /api/v1/assets/asset_123/manifest
@@ -63,11 +62,15 @@ curl /api/v1/assets/asset_123/manifest
 
 ### Context
 
+Best for design intent, usage notes, and higher-level implementation context.
+
 ```bash
 curl /api/v1/assets/asset_123/context
 ```
 
 ### Integration
+
+Best for setup steps, integration guidance, and implementation details.
 
 ```bash
 curl /api/v1/assets/asset_123/integration
@@ -75,7 +78,7 @@ curl /api/v1/assets/asset_123/integration
 
 ## Authenticated request example
 
-Entitlement checks require a Clerk bearer token.
+Entitlement checks are the only current user-bound endpoint. Use them when a workflow needs to know whether the authenticated user owns the asset.
 
 ```bash
 curl /api/v1/assets/asset_123/entitlement \
