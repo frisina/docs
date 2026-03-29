@@ -13,3 +13,77 @@ This quickstart shows the core AssetArcade API flow:
 
 ```text
 /api/v1
+```
+
+## 1. Search for assets
+
+Use the search endpoint to find assets by capability.
+
+```bash
+curl -X POST /api/v1/agent/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "capabilities": ["pathfinding", "enemy_ai"],
+    "engine": "GameMaker",
+    "engineVersion": "2024.8",
+    "limit": 5
+  }'
+```
+
+The response returns lightweight matches with scores, branch summaries, and deep-link URLs for the next step.
+
+## 2. Inspect asset detail
+
+Use the asset detail endpoint to retrieve the full public record for an asset.
+
+```bash
+curl /api/v1/assets/asset_123
+```
+
+This response includes:
+
+- storefront fields
+- pricing
+- capabilities
+- readiness level
+- manifest
+- context and integration summaries
+- branch-aware technical metadata
+- version and file information
+
+## 3. Fetch focused metadata
+
+If you only need one part of the asset record, use the focused endpoints.
+
+### Manifest
+
+```bash
+curl /api/v1/assets/asset_123/manifest
+```
+
+### Context
+
+```bash
+curl /api/v1/assets/asset_123/context
+```
+
+### Integration
+
+```bash
+curl /api/v1/assets/asset_123/integration
+```
+
+## Authenticated request example
+
+Entitlement checks require a Clerk bearer token.
+
+```bash
+curl /api/v1/assets/asset_123/entitlement \
+  -H "Authorization: Bearer <token>"
+```
+
+## Next steps
+
+- read the [Authentication](/authentication) guide
+- review the [Deprecation Policy](/deprecation-policy)
+- browse the generated Reference section for the full endpoint surface
