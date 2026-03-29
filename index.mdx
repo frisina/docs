@@ -25,14 +25,14 @@ AssetArcade makes game assets easier to discover, evaluate, and integrate throug
 
 ## Why AssetArcade exists
 
-Modern game development increasingly happens inside tool-assisted workflows. AssetArcade exposes manifests, context, integration guidance, branches, versions, and publisher data in a machine-readable form so assets can move more cleanly from discovery to implementation. The goal is not to replace developers, but to make high-quality assets more usable inside the tools they already work with.
+Modern game development increasingly happens inside tool-assisted workflows. AssetArcade exposes manifests, context, integration guidance, branches, versions, and publisher data in a structured, machine-readable format so assets can move more cleanly from discovery to implementation. The goal is not to replace developers, but to make high-quality assets more usable inside the tools they already work with.
 
 ## Who it's for
 
-- developers who want faster asset evaluation and integration
-- publishers who want their assets to be more understandable and easier to adopt
-- tool builders integrating marketplace discovery into IDEs, assistants, and pipelines
-- developer-led, AI-assisted workflows that need structured asset metadata and implementation context
+- Developers who want faster asset evaluation and integration
+- Publishers who want their assets to be more understandable and easier to adopt
+- Tool builders integrating marketplace discovery into IDEs, assistants, and pipelines
+- Developer-led, AI-assisted workflows that need structured asset metadata and implementation context
 
 ## Base path
 
@@ -44,7 +44,7 @@ All endpoints are served under:
 
 The current API includes:
 
-- agent search
+- asset discovery search
 - asset detail
 - manifest, context, and integration endpoints
 - capabilities taxonomy
@@ -58,6 +58,6 @@ Start with [Quickstart](/quickstart) if you want the shortest path from search t
 
 ## Versioning
 
-AssetArcade currently serves `/v1/`.
+The current API version is `v1`, and all current endpoints are served under `/api/v1`.
 
 Breaking changes are introduced through a new major version rather than changing the live version in place. See the [Deprecation Policy](/deprecation-policy) for the compatibility rules.
