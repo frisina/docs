@@ -1,27 +1,43 @@
 ---
 title: Deprecation Policy
-description: Versioning and sunset rules
+description: Versioning, compatibility, and sunset rules
 ---
 
 AssetArcade versions the API by path prefix, such as `/v1/` and `/v2/`.
 
 ## Current status
 
-`/v1/` has no planned sunset date.
+`/v1/` is active and has no planned sunset date.
 
-## Versioning rules
+## Compatibility rules
 
-- Breaking changes require a new major version
-- Older versions receive at least 6 months of deprecation time after a new major version launches
-- Deprecated endpoints are signaled with `Deprecation` and `Sunset` headers
-- Deprecated endpoints are marked in the OpenAPI spec
+Non-breaking changes may be added to a live version. Examples include:
 
-## Breaking changes
+- new optional response fields
+- new endpoints
+- new optional query parameters
 
-Examples of breaking changes include:
+Breaking changes require a new major version.
 
-- Removing or renaming a response field
-- Changing the type of an existing field
-- Removing an endpoint
-- Changing a path or parameter name
-- Making an optional field required
+## What counts as a breaking change
+
+Examples include:
+
+- removing or renaming a response field
+- changing the type of an existing field
+- removing an endpoint
+- changing a path or parameter name
+- making an optional field required
+
+## Deprecation process
+
+When a new major version is introduced:
+
+1. the new version launches alongside the existing one
+2. the older version receives at least 6 months of deprecation time
+3. deprecated endpoints are signaled with `Deprecation` and `Sunset` headers
+4. deprecated endpoints are marked in the OpenAPI spec
+
+## Versioning rule
+
+AssetArcade versions the API as a whole. Individual endpoints are not versioned separately.
