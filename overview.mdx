@@ -1,51 +1,53 @@
 ---
 title: Overview
-description: AssetArcade API for asset discovery, structured metadata, and agent-friendly integration
+description: What the AssetArcade API is for and how to think about its structure
 ---
 
-AssetArcade is an agent-native asset marketplace API for discovering assets, inspecting structured metadata, and retrieving implementation guidance.
+AssetArcade provides structured asset data for modern game development workflows. It helps developers, publishers, tools, and developer-led, AI-assisted workflows understand how an asset fits into a real project without relying only on storefront copy.
 
-## What the API is for
+## What the API does
 
-The API is designed for both human developers and AI agents.
+The API is built around a simple idea: assets should be easier to evaluate, easier to integrate, and easier to reason about in code.
 
-You can use it to:
+With the current API, you can:
 
-- search for assets by capability
-- inspect manifests, context, and integration guidance
-- explore branches and version history
-- check user entitlement for a specific asset
-- look up publisher profiles
+- search for assets by capability and basic constraints
+- inspect full asset detail
+- fetch focused metadata such as manifests, context, and integration guidance
+- explore public branches and version history
+- check authenticated user entitlement
+- look up publisher profiles directly
 
-## Base path
+## Why the API exists
 
-All endpoints are served under:
+Modern development workflows increasingly happen inside tools, assistants, and integration pipelines. To work well in those environments, assets need more than screenshots and marketing descriptions. They need structured metadata, compatibility details, implementation guidance, and version-aware context.
+
+AssetArcade exposes that information in a structured, machine-readable format so high-quality assets can move more cleanly from discovery to implementation.
+
+## How the API is organized
+
+The current surface is grouped into a few focused areas:
+
+- `Search` for capability-based asset discovery
+- `Assets` for full detail and focused sub-resources
+- `Capabilities` for taxonomy and filtering
+- `Library` for entitlement checks
+- `Publishers` for public publisher profiles
+
+This keeps the API practical for both direct human use and tool-driven workflows.
+
+## Base path and versioning
+
+All current endpoints are served under:
 
 `/api/v1`
 
-## Response style
+The current API version is `v1`. Breaking changes are introduced through a new major version rather than changing the live version in place.
 
-The API is read-focused and resource-oriented:
+For the exact compatibility rules, see the [Deprecation Policy](/deprecation-policy).
 
-- search responses are lightweight
-- detail endpoints are deeper and more structured
-- manifest, context, and integration each have focused endpoints
-- versioning is path-based
+## Where to start
 
-## Current surface
-
-The current API includes:
-
-- agent search
-- asset detail
-- manifest, context, and integration endpoints
-- capabilities taxonomy
-- branch listing and version history
-- entitlement checks
-- publisher profiles
-
-## OpenAPI and SDKs
-
-The API contract is defined in OpenAPI and used to power generated reference docs and SDK types.
-
-See the Reference section for endpoint details.
+- Start with [Quickstart](/quickstart) for the fastest path from search to implementation
+- Use [Authentication](/authentication) for entitlement-specific auth details
+- Use the generated Reference section when you need the full request and response surface
